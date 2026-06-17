@@ -1,0 +1,37 @@
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: listmonk-admin-urls
+  namespace: listmonk-prod
+spec:
+  ipAllowList:
+    ipStrategy:
+      depth: 2
+    sourceRange:
+      - 10.0.0.0/8
+      - 100.0.0.0/8
+      - 131.155.0.0/16
+      - 131.155.68.0/22
+      - 131.155.74.68/32
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: listmonk
+  namespace: listmonk-prod
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`listmonk.gewis.nl`) && (PathPrefix(`/api`) || PathPrefix(`/admin`) || PathPrefix(`/webhooks/bounce`))
+      kind: Rule
+      services:
+        - name: listmonk
+          port: 9000
+      middlewares:
+        - name: listmonk-admin-urls
+    - match: Host(`listmonk.gewis.nl`)
+      kind: Rule
+      services:
+        - name: listmonk
+          port: 9000

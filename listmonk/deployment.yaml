@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: listmonk
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: listmonk
+  template:
+    metadata:
+      labels:
+        app: listmonk
+    spec:
+      containers:
+        - name: listmonk
+          image: listmonk/listmonk:latest
+          imagePullPolicy: Always
+          command: ["sh", "-c"]
+          args:
+            - ./listmonk --install --idempotent --yes --config '' && ./listmonk --upgrade --yes --config '' && ./listmonk --config ''
+          env:
+            - name: LISTMONK_app__address
+              value: 0.0.0.0:9000
+            - name: LISTMONK_db__user
+              value: svc-listmonk-prod
+            - name: LISTMONK_db__host
+              value: pg01.db.gewis.nl
+            - name: LISTMONK_db__port
+              value: '5432'
+            - name: LISTMONK_db__ssl_mode
+              value: require
+            - name: LISTMONK_db__max_open
+              value: '25'
+            - name: LISTMONK_db__max_idle
+              value: '25'
+            - name: LISTMONK_db__max_lifetime
+              value: 300s
+            - name: TZ
+              value: Europe/Amsterdam
+            - name: LISTMONK_ADMIN_USER
+              value: cbclocal
+            - name: LISTMONK_db__database
+              value: listmonkprod_db
+          ports:
+            - containerPort: 9000
+              name: main
+              protocol: TCP
+          volumeMounts:
+            - mountPath: /listmonk/uploads
+              name: uploads
+      volumes:
+        - name: uploads
+          persistentVolumeClaim:
+            claimName: uploads
