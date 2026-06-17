@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: listmonk
-          image: listmonk/listmonk:latest
+          image: listmonk/listmonk:v6.1.0
           imagePullPolicy: Always
           command: ["sh", "-c"]
           args:
@@ -42,6 +42,9 @@ spec:
               value: cbclocal
             - name: LISTMONK_db__database
               value: listmonkprod_db
+          envFrom:
+            - secretRef:
+                name: listmonk-secrets
           ports:
             - containerPort: 9000
               name: main
