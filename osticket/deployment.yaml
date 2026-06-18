@@ -1,0 +1,111 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: apache
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: apache
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        io.kompose.service: apache
+    spec:
+      hostname: osticket-apache
+      terminationGracePeriodSeconds: 60
+      containers:
+        - name: apache
+          image: ghcr.io/rinkp/osticket-dockerized:1.18.3
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: OST_ADMIN_EMAIL
+              value: rink@gewis.nl
+            - name: OST_DBHOST
+              value: mariadb01.db.gewis.nl
+            - name: OST_DBNAME
+              value: osticket
+            - name: OST_DBTYPE
+              value: mysql
+            - name: OST_LOCAL_NETWORKS
+              value: 127.0.0.0/24,10.0.0.0/8
+            - name: OST_SESSION_BACKEND
+              value: db
+            - name: OST_TABLE_PREFIX
+              value: ost_
+            - name: OST_TRUSTED_PROXIES
+              value: 131.155.69.202,10.0.0.0/8
+            - name: PHP_OPCACHE_MAX_WASTED_PERCENTAGE
+              value: '10'
+            - name: PHP_OPCACHE_MEMORY_CONSUMPTION
+              value: '384'
+            - name: PHP_OPCACHE_VALIDATE_TIMESTAMPS
+              value: '"0"'
+            - name: TZ
+              value: Europe/Amsterdam
+          envFrom:
+            - secretRef:
+                name: osticket-secrets
+          ports:
+            - containerPort: 80
+              name: 80tcp
+              protocol: TCP
+          livenessProbe:
+            exec:
+              command:
+                - curl --fail http://localhost || exit 1
+            failureThreshold: 5
+            initialDelaySeconds: 10
+            periodSeconds: 60
+            timeoutSeconds: 2
+          volumeMounts:
+            - mountPath: /var/www/attachments
+              name: attachments
+      volumes:
+        - name: attachments
+          persistentVolumeClaim:
+            claimName: attachments
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postfix
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: postfix
+  template:
+    metadata:
+      labels:
+        io.kompose.service: postfix
+    spec:
+      hostname: osticket-postfix
+      terminationGracePeriodSeconds: 90
+      containers:
+        - name: postfix
+          image: juanluisbaptiste/postfix
+          imagePullPolicy: Always
+          env:
+            - name: SERVER_HOSTNAME
+              value: osticket-postfix
+            - name: SMTP_PORT
+              value: '587'
+            - name: SMTP_SERVER
+              value: smtp.gewis.nl
+          envFrom:
+            - secretRef:
+                name: osticket-secrets
+          ports:
+            - containerPort: 25
+              name: 25tcp
+              protocol: TCP
+          livenessProbe:
+            exec:
+              command:
+                - /bin/bash -c "if [ $(mailq | wc -l) -ne 1 ]; then false; fi"
+            failureThreshold: 3
+            periodSeconds: 60
+            timeoutSeconds: 1

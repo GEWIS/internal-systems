@@ -1,0 +1,42 @@
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: osticket-account-redirect
+  namespace: osticket-prod
+spec:
+  redirectRegex:
+    permanent: false
+    regex: ^https?://support\.gewis\.nl/account.php$
+    replacement: https://support.gewis.nl/pages/registration
+---
+## Currently unused
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: support-login-redirect
+  namespace: osticket-prod
+spec:
+  redirectRegex:
+    permanent: true
+    regex: ^https?://[^/]+(/login\.php)$
+    replacement: ${1}?do=ext&bk=oauth2.user.p12i4
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: osticket-ingress-prod
+  namespace: osticket-prod
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`support.gewis.nl`) && Method(`GET`)
+      middlewares:
+        - name: osticket-account-redirect
+      services:
+        - name: apache
+          port: 9400
+    - match: Host(`support.gewis.nl`)
+      services:
+        - name: apache
+          port: 9400
