@@ -1,0 +1,303 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: database
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: database
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        io.kompose.service: database
+    spec:
+      containers:
+        - name: database
+          image: zulip/zulip-postgresql:14
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: POSTGRES_DB
+              value: zulip
+            - name: POSTGRES_USER
+              value: zulip
+          envFrom:
+            - secretRef:
+                name: zulip-secrets
+          ports:
+            - containerPort: 5432
+              name: 5432tcp
+              protocol: TCP
+          volumeMounts:
+            - mountPath: /var/lib/postgresql/data
+              name: postgres14
+      volumes:
+        - name: postgres14
+          persistentVolumeClaim:
+            claimName: postgres14
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: memcached
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: memcached
+  template:
+    metadata:
+      labels:
+        io.kompose.service: memcached
+    spec:
+      containers:
+        - name: memcached
+          image: memcached:alpine
+          imagePullPolicy: IfNotPresent
+          command:
+            - sh
+            - -euc
+            - |
+              echo 'mech_list: plain' > "$SASL_CONF_PATH"
+              echo "zulip@$HOSTNAME:$MEMCACHED_PASSWORD" > "$MEMCACHED_SASL_PWDB"
+              echo "zulip@localhost:$MEMCACHED_PASSWORD" >> "$MEMCACHED_SASL_PWDB"
+              exec memcached -S
+          env:
+            - name: MEMCACHED_SASL_PWDB
+              value: /home/memcache/memcached-sasl-db
+            - name: SASL_CONF_PATH
+              value: /home/memcache/memcached.conf
+          envFrom:
+            - secretRef:
+                name: zulip-secrets
+          ports:
+            - containerPort: 11211
+              name: 11211tcp
+              protocol: TCP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rabbitmq
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: rabbitmq
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        io.kompose.service: rabbitmq
+    spec:
+      containers:
+        - name: rabbitmq
+          image: rabbitmq:alpine
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: RABBITMQ_DEFAULT_USER
+              value: zulip
+          envFrom:
+            - secretRef:
+                name: zulip-secrets
+          ports:
+            - containerPort: 5672
+              name: 5672tcp
+              protocol: TCP
+            - containerPort: 5671
+              name: 5671tcp
+              protocol: TCP
+          volumeMounts:
+            - mountPath: /var/lib/rabbitmq
+              name: rabbitmq
+      volumes:
+        - name: rabbitmq
+          persistentVolumeClaim:
+            claimName: rabbitmq
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: redis
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        io.kompose.service: redis
+    spec:
+      containers:
+        - name: redis
+          image: redis:8.6-alpine
+          imagePullPolicy: IfNotPresent
+          args:
+            - sh
+            - -euc
+            - |
+              echo "requirepass '$REDIS_PASSWORD'" > /etc/redis.conf
+              exec redis-server /etc/redis.conf
+          envFrom:
+            - secretRef:
+                name: zulip-secrets
+          ports:
+            - containerPort: 6379
+              name: 6379tcp
+              protocol: TCP
+          volumeMounts:
+            - mountPath: /data
+              name: redis
+      volumes:
+        - name: redis
+          persistentVolumeClaim:
+            claimName: redis
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zulip
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: zulip
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        io.kompose.service: zulip
+    spec:
+      containers:
+        - name: zulip
+          image: zulip/docker-zulip:11.6-0
+          imagePullPolicy: IfNotPresent
+          command:
+            - /data/custom/entrypoint.sh
+          env:
+            - name: DB_HOST
+              value: database
+            - name: DISABLE_HTTPS
+              value: 'True'
+            - name: HTTP_ONLY
+              value: 'True'
+            - name: LOADBALANCER_IPS
+              value: 10.0.0.0/8
+            - name: SETTING_ADD_TOKENS_TO_NOREPLY_ADDRESS
+              value: 'False'
+            - name: SETTING_AUTH_LDAP_ADVANCED_REALM_ACCESS_CONTROL
+              value: >-
+                { "cbc": [{"memberOfFlattened":"CN=Zulip -
+                CBC,OU=Zulip,OU=Groups,DC=gewiswg,DC=gewis,DC=nl"}], "board42":
+                [{"memberOfFlattened":"CN=Zulip - Board
+                42,OU=Zulip,OU=Groups,DC=gewiswg,DC=gewis,DC=nl"}], "board43":
+                [{"memberOfFlattened":"CN=Zulip - Board
+                43,OU=Zulip,OU=Groups,DC=gewiswg,DC=gewis,DC=nl"}], "board44":
+                [{"memberOfFlattened":"CN=Zulip - Board
+                44,OU=Zulip,OU=Groups,DC=gewiswg,DC=gewis,DC=nl"}], "":
+                [{"memberOfFlattened":"CN=Zulip -
+                WWW,OU=Zulip,OU=Groups,DC=gewiswg,DC=gewis,DC=nl"}] }
+            - name: SETTING_AUTH_LDAP_ALWAYS_UPDATE_USER
+              value: 'True'
+            - name: SETTING_AUTH_LDAP_REVERSE_EMAIL_SEARCH
+              value: >-
+                LDAPSearch("DC=gewiswg,DC=gewis,DC=nl", ldap.SCOPE_SUBTREE,
+                "(mail=%(email)s)")
+            - name: SETTING_AUTH_LDAP_SERVER_URI
+              value: ldap://ldaps.gewis.nl
+            - name: SETTING_AUTH_LDAP_USERNAME_ATTR
+              value: sAMAccountName
+            - name: SETTING_AUTH_LDAP_USER_ATTR_MAP
+              value: >-
+                { "full_name": "displayName", "userAccountControl":
+                "userAccountControl", "avatar": "thumbnailPhoto" }
+            - name: SETTING_AUTH_LDAP_USER_SEARCH
+              value: >-
+                LDAPSearch("DC=gewiswg,DC=gewis,DC=nl", ldap.SCOPE_SUBTREE,
+                "(sAMAccountName=%(user)s)")
+            - name: SETTING_AVATAR_CHANGES_DISABLED
+              value: 'True'
+            - name: SETTING_DEBUG
+              value: 'False'
+            - name: SETTING_EMAIL_GATEWAY_IMAP_FOLDER
+              value: INBOX
+            - name: SETTING_EMAIL_GATEWAY_IMAP_PORT
+              value: '993'
+            - name: SETTING_EMAIL_GATEWAY_IMAP_SERVER
+              value: imap.gewis.nl
+            - name: SETTING_EMAIL_HOST
+              value: smtp.gewis.nl
+            - name: SETTING_EMAIL_PORT
+              value: '587'
+            - name: SETTING_EMAIL_USE_SSL
+              value: 'False'
+            - name: SETTING_EMAIL_USE_TLS
+              value: 'True'
+            - name: SETTING_EXTERNAL_HOST
+              value: zulip.gewis.nl
+            - name: SETTING_JITSI_SERVER_URL
+              value: https://jitsi.nluug.nl
+            - name: SETTING_LDAP_DEACTIVATE_NON_MATCHING_USERS
+              value: 'True'
+            - name: SETTING_LDAP_EMAIL_ATTR
+              value: mail
+            - name: SETTING_MEMCACHED_LOCATION
+              value: memcached:11211
+            - name: SETTING_NAME_CHANGES_DISABLED
+              value: 'True'
+            - name: SETTING_OPEN_REALM_CREATION
+              value: 'False'
+            - name: SETTING_PROMOTE_SPONSORING_ZULIP
+              value: 'False'
+            - name: SETTING_PUSH_NOTIFICATION_BOUNCER_URL
+              value: https://push.zulipchat.com
+            - name: SETTING_RABBITMQ_HOST
+              value: rabbitmq
+            - name: SETTING_REDIS_HOST
+              value: redis
+            - name: SETTING_SOCIAL_AUTH_OIDC_ENABLED_IDPS
+              value: >-
+                {"gewis_oidc":{"oidc_url":"https://auth-admin.gewis.nl/realms/GEWISWG","display_name":"GEWISWG","display_icon":None,"client_id":"zulip","secret":get_secret("social_auth_oidc_secret"),"auto_signup":True}}
+            - name: SETTING_SOCIAL_AUTH_SUBDOMAIN
+              value: auth
+            - name: SETTING_SUBMIT_USAGE_STATISTICS
+              value: 'False'
+            - name: SETTING_ZULIP_ADMINISTRATOR
+              value: zulip@gewis.nl
+            - name: SSL_CERTIFICATE_GENERATION
+              value: self-signed
+            - name: ZULIP_AUTH_BACKENDS
+              value: GenericOpenIdConnectBackend
+            - name: ZULIP_CUSTOM_SETTINGS
+              value: |
+                AUTH_LDAP_ADVANCED_REALM_ADMIN_CONTROL={ "cbc": [{"memberOfFlattened":"CN=Zulip Admin - CBC,OU=Zulip,OU=Groups,DC=gewiswg,DC=gewis,DC=nl"}], "board42": [{"memberOfFlattened":"CN=Zulip Admin - Board 42,OU=Zulip,OU=Groups,DC=gewiswg,DC=gewis,DC=nl"}], "board43": [{"memberOfFlattened":"CN=Zulip Admin - Board 43,OU=Zulip,OU=Groups,DC=gewiswg,DC=gewis,DC=nl"}], "board44": [{"memberOfFlattened":"CN=Zulip Admin - Board 44,OU=Zulip,OU=Groups,DC=gewiswg,DC=gewis,DC=nl"}], "": [{"memberOfFlattened":"CN=Zulip Admin - WWW,OU=Zulip,OU=Groups,DC=gewiswg,DC=gewis,DC=nl"}] }
+                AUTH_LDAP_USER_LOOKUP=LDAPSearch("DC=gewiswg,DC=gewis,DC=nl", ldap.SCOPE_SUBTREE)
+                REGISTER_LINK_DISABLED = True
+          envFrom:
+            - secretRef:
+                name: zulip-secrets
+          livenessProbe:
+            exec:
+              command:
+                - '! (supervisorctl status | grep zulip | grep -v RUNNING )'
+            failureThreshold: 120
+            periodSeconds: 10
+            timeoutSeconds: 10
+          ports:
+            - containerPort: 80
+              name: 80tcp
+              protocol: TCP
+          volumeMounts:
+            - mountPath: /data
+              name: zulip
+      volumes:
+        - name: zulip
+          persistentVolumeClaim:
+            claimName: zulip

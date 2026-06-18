@@ -1,0 +1,28 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: zulip
+  namespace: zulip-prod
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: zulip.gewis.nl
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: zulip
+                port:
+                  number: 9414
+    - host: '*.zulip.gewis.nl'
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: zulip
+                port:
+                  number: 9414
