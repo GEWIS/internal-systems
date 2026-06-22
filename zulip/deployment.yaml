@@ -201,7 +201,9 @@ spec:
                 [{"memberOfFlattened":"CN=Zulip - Board
                 43,OU=Zulip,OU=Groups,DC=gewiswg,DC=gewis,DC=nl"}], "board44":
                 [{"memberOfFlattened":"CN=Zulip - Board
-                44,OU=Zulip,OU=Groups,DC=gewiswg,DC=gewis,DC=nl"}], "":
+                44,OU=Zulip,OU=Groups,DC=gewiswg,DC=gewis,DC=nl"}], "board45":
+                [{"memberOfFlattened":"CN=Zulip - Board
+                45,OU=Zulip,OU=Groups,DC=gewiswg,DC=gewis,DC=nl"}], "":
                 [{"memberOfFlattened":"CN=Zulip -
                 WWW,OU=Zulip,OU=Groups,DC=gewiswg,DC=gewis,DC=nl"}] }
             - name: SETTING_AUTH_LDAP_ALWAYS_UPDATE_USER
@@ -277,7 +279,7 @@ spec:
               value: GenericOpenIdConnectBackend
             - name: ZULIP_CUSTOM_SETTINGS
               value: |
-                AUTH_LDAP_ADVANCED_REALM_ADMIN_CONTROL={ "cbc": [{"memberOfFlattened":"CN=Zulip Admin - CBC,OU=Zulip,OU=Groups,DC=gewiswg,DC=gewis,DC=nl"}], "board42": [{"memberOfFlattened":"CN=Zulip Admin - Board 42,OU=Zulip,OU=Groups,DC=gewiswg,DC=gewis,DC=nl"}], "board43": [{"memberOfFlattened":"CN=Zulip Admin - Board 43,OU=Zulip,OU=Groups,DC=gewiswg,DC=gewis,DC=nl"}], "board44": [{"memberOfFlattened":"CN=Zulip Admin - Board 44,OU=Zulip,OU=Groups,DC=gewiswg,DC=gewis,DC=nl"}], "": [{"memberOfFlattened":"CN=Zulip Admin - WWW,OU=Zulip,OU=Groups,DC=gewiswg,DC=gewis,DC=nl"}] }
+                AUTH_LDAP_ADVANCED_REALM_ADMIN_CONTROL={ "cbc": [{"memberOfFlattened":"CN=Zulip Admin - CBC,OU=Zulip,OU=Groups,DC=gewiswg,DC=gewis,DC=nl"}], "board42": [{"memberOfFlattened":"CN=Zulip Admin - Board 42,OU=Zulip,OU=Groups,DC=gewiswg,DC=gewis,DC=nl"}], "board43": [{"memberOfFlattened":"CN=Zulip Admin - Board 43,OU=Zulip,OU=Groups,DC=gewiswg,DC=gewis,DC=nl"}], "board44": [{"memberOfFlattened":"CN=Zulip Admin - Board 44,OU=Zulip,OU=Groups,DC=gewiswg,DC=gewis,DC=nl"}], "board45": [{"memberOfFlattened":"CN=Zulip Admin - Board 45,OU=Zulip,OU=Groups,DC=gewiswg,DC=gewis,DC=nl"}], "": [{"memberOfFlattened":"CN=Zulip Admin - WWW,OU=Zulip,OU=Groups,DC=gewiswg,DC=gewis,DC=nl"}] }
                 AUTH_LDAP_USER_LOOKUP=LDAPSearch("DC=gewiswg,DC=gewis,DC=nl", ldap.SCOPE_SUBTREE)
                 REGISTER_LINK_DISABLED = True
           envFrom:
