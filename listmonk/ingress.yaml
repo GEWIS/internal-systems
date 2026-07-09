@@ -28,8 +28,8 @@ spec:
       services:
         - name: listmonk
           port: 9000
-      middlewares:
-        - name: listmonk-admin-urls
+      # middlewares:
+      #   - name: listmonk-admin-urls
     - match: Host(`listmonk.gewis.nl`)
       kind: Rule
       services:
