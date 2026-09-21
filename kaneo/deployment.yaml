@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kaneo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: kaneo
+  template:
+    metadata:
+      labels:
+        io.kompose.service: kaneo
+    spec:
+      containers:
+        - name: kaneo
+          image: ghcr.io/usekaneo/kaneo:2.25.0
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: KANEO_CLIENT_URL
+              value: https://kaneo.gewis.nl
+            - name: TZ
+              value: Europe/Amsterdam
+          envFrom:
+            - secretRef:
+                name: kaneo-secrets
+          ports:
+            - containerPort: 5173
+              name: main
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: main
+            failureThreshold: 3
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: main
+            failureThreshold: 3
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5

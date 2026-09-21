@@ -1,0 +1,14 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: kaneo
+  namespace: kaneo-prod
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`kaneo.gewis.nl`)
+      kind: Rule
+      services:
+        - name: kaneo
+          port: 5173
