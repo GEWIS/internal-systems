@@ -21,6 +21,14 @@ spec:
               value: https://kaneo.gewis.nl
             - name: TZ
               value: Europe/Amsterdam
+            - name: CUSTOM_OAUTH_CLIENT_ID
+              value: kaneo-client
+            - name: CUSTOM_OAUTH_DISCOVERY_URL
+              value: https://auth.gewis.nl/realms/GEWISWG/.well-known/openid-configuration
+            - name: CUSTOM_OAUTH_LOGOUT_URL
+              value: https://auth.gewis.nl/realms/GEWISWG/protocol/openid-connect/logout
+            - name: CUSTOM_OAUTH_SCOPES
+              value: openid,profile,email
           envFrom:
             - secretRef:
                 name: kaneo-secrets
