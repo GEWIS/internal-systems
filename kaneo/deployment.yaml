@@ -29,6 +29,10 @@ spec:
               value: https://auth.gewis.nl/realms/GEWISWG/protocol/openid-connect/logout
             - name: CUSTOM_OAUTH_SCOPES
               value: openid,profile,email
+            - name: DISABLE_GUEST_ACCESS
+              value: 'true'
+            - name: CUSTOM_OAUTH_AUTO_LOGIN
+              value: 'true'
           envFrom:
             - secretRef:
                 name: kaneo-secrets
