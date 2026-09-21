@@ -22,7 +22,7 @@ spec:
             - name: TZ
               value: Europe/Amsterdam
             - name: CUSTOM_OAUTH_CLIENT_ID
-              value: kaneo-client
+              value: kaneo-prod
             - name: CUSTOM_OAUTH_DISCOVERY_URL
               value: https://auth.gewis.nl/realms/GEWISWG/.well-known/openid-configuration
             - name: CUSTOM_OAUTH_LOGOUT_URL
