@@ -1,0 +1,177 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nextcloud
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: nextcloud
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        io.kompose.service: nextcloud
+    spec:
+      hostname: nextcloud
+      # The image drops to www-data (33:33) but never chowns NEXTCLOUD_DATA_DIR,
+      # so a fresh PVC would be root-owned and the install would fail.
+      securityContext:
+        fsGroup: 33
+        fsGroupChangePolicy: OnRootMismatch
+      containers:
+        - name: nextcloud
+          image: nextcloud:34.0.4-apache
+          imagePullPolicy: IfNotPresent
+          # Anchored: the cron container reads the same env. Several image config files
+          # (redis, reverse proxy, SMTP) are evaluated by PHP at *runtime*, not baked into
+          # config.php at install, so drift between the two containers breaks cron jobs.
+          env: &nextcloud-env
+            - name: POSTGRES_HOST
+              value: pg01.db.gewis.nl:5432
+            - name: POSTGRES_DB
+              value: nextcloudtest_db
+            - name: POSTGRES_USER
+              value: svc-nextcloud-test
+            - name: PGSSLMODE
+              value: require
+            - name: NEXTCLOUD_ADMIN_USER
+              value: cbclocal
+            - name: NEXTCLOUD_DATA_DIR
+              value: /var/www/data
+            - name: NEXTCLOUD_TRUSTED_DOMAINS
+              value: nextcloud-test.gewis.nl
+            - name: NEXTCLOUD_INIT_HTACCESS
+              value: 'true'
+            - name: OVERWRITEHOST
+              value: nextcloud-test.gewis.nl
+            - name: OVERWRITEPROTOCOL
+              value: https
+            - name: OVERWRITECLIURL
+              value: https://nextcloud-test.gewis.nl
+            - name: TRUSTED_PROXIES
+              value: 10.0.0.0/8
+            - name: APACHE_DISABLE_REWRITE_IP
+              value: '1'
+            - name: APACHE_BODY_LIMIT
+              value: '0'
+            - name: PHP_MEMORY_LIMIT
+              value: 1G
+            - name: PHP_UPLOAD_LIMIT
+              value: 16G
+            - name: PHP_OPCACHE_MEMORY_CONSUMPTION
+              value: '256'
+            - name: REDIS_HOST
+              value: redis
+            - name: SMTP_HOST
+              value: smtp.gewis.nl
+            - name: SMTP_PORT
+              value: '587'
+            - name: SMTP_SECURE
+              value: tls
+            - name: MAIL_FROM_ADDRESS
+              value: nextcloud-test
+            - name: MAIL_DOMAIN
+              value: gewis.nl
+            - name: TZ
+              value: Europe/Amsterdam
+          envFrom: &nextcloud-secrets
+            - secretRef:
+                name: nextcloud-secrets
+          ports:
+            - containerPort: 80
+              name: main
+              protocol: TCP
+          # First install and major upgrades run occ inside the entrypoint; without a
+          # generous startup probe the liveness probe kills the pod mid-migration.
+          startupProbe:
+            httpGet:
+              path: /status.php
+              port: main
+            failureThreshold: 60
+            periodSeconds: 10
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /status.php
+              port: main
+            failureThreshold: 3
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /status.php
+              port: main
+            failureThreshold: 5
+            periodSeconds: 30
+            timeoutSeconds: 10
+          volumeMounts:
+            - mountPath: /var/www/html
+              name: html
+            - mountPath: /var/www/data
+              name: data
+            - mountPath: /docker-entrypoint-hooks.d/before-starting
+              name: hooks
+        # Sidecar rather than a CronJob: the html/data PVCs are ReadWriteOnce, so no
+        # second pod can mount them.
+        - name: cron
+          image: nextcloud:34.0.4-apache
+          imagePullPolicy: IfNotPresent
+          command:
+            - /cron.sh
+          env: *nextcloud-env
+          envFrom: *nextcloud-secrets
+          volumeMounts:
+            - mountPath: /var/www/html
+              name: html
+            - mountPath: /var/www/data
+              name: data
+      dnsConfig:
+        options:
+          - name: ndots
+            value: '1'
+      volumes:
+        - name: html
+          persistentVolumeClaim:
+            claimName: html
+        - name: data
+          persistentVolumeClaim:
+            claimName: data
+        - name: hooks
+          configMap:
+            name: nextcloud-hooks
+            defaultMode: 0755
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: redis
+  template:
+    metadata:
+      labels:
+        io.kompose.service: redis
+    spec:
+      containers:
+        - name: redis
+          image: redis:8.6-alpine
+          imagePullPolicy: IfNotPresent
+          # Cache + file locks only, no persistence: losing it on restart is safe.
+          args:
+            - sh
+            - -euc
+            - |
+              echo "requirepass '$REDIS_PASSWORD'" > /etc/redis.conf
+              exec redis-server /etc/redis.conf
+          envFrom:
+            - secretRef:
+                name: nextcloud-secrets
+          ports:
+            - containerPort: 6379
+              name: 6379tcp
+              protocol: TCP

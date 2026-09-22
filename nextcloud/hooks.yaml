@@ -1,0 +1,52 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nextcloud-hooks
+  namespace: nextcloud-test
+data:
+  # Runs on every container start, after install/upgrade, via the image's
+  # /docker-entrypoint-hooks.d/before-starting hook folder. The entrypoint executes it
+  # through `su -p www-data`, so occ runs as the right user and the env is preserved.
+  # Must be named *.sh and be executable (see defaultMode in deployment.yaml).
+  10-configure.sh: |
+    #!/bin/sh
+    set -eu
+
+    occ() { php -f /var/www/html/occ "$@"; }
+
+    if ! occ status | grep -q 'installed: true'; then
+      echo '==> not installed yet, skipping configuration hook'
+      exit 0
+    fi
+
+    occ config:system:set default_phone_region --value=NL
+    occ config:system:set maintenance_window_start --type=integer --value=1
+    occ config:system:set default_quota --value='10 GB'
+
+    if [ -z "${OIDC_CLIENT_SECRET:-}" ] || [ "${OIDC_CLIENT_SECRET}" = 'REPLACE_ME' ]; then
+      echo '==> OIDC_CLIENT_SECRET unset, skipping user_oidc configuration'
+      exit 0
+    fi
+
+    occ app:install user_oidc || occ app:enable user_oidc
+
+    # Idempotent upsert; re-running also flushes the provider JWKS cache.
+    # --clientsecret-env keeps the secret out of the process list.
+    occ user_oidc:provider gewis \
+      --clientid='nextcloud-test' \
+      --clientsecret-env='OIDC_CLIENT_SECRET' \
+      --discoveryuri='https://auth.gewis.nl/realms/GEWISWG/.well-known/openid-configuration' \
+      --scope='openid profile email' \
+      --mapping-uid='preferred_username' \
+      --mapping-email='email' \
+      --mapping-display-name='name' \
+      --mapping-groups='groups' \
+      --group-provisioning=1 \
+      --unique-uid=0 \
+      --check-bearer=0
+
+    # Single backend -> send users straight to Keycloak.
+    # Break-glass local login stays reachable at /login?direct=1.
+    occ config:app:set --type=string --value=0 user_oidc allow_multiple_user_backends
+
+    occ db:add-missing-indices
