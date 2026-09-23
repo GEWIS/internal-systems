@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: kaneo
-          image: ghcr.io/usekaneo/kaneo:2.25.0
+          image: ghcr.io/usekaneo/kaneo:2.26.0
           imagePullPolicy: IfNotPresent
           env:
             - name: KANEO_CLIENT_URL
@@ -33,6 +33,18 @@ spec:
               value: 'true'
             - name: CUSTOM_OAUTH_AUTO_LOGIN
               value: 'true'
+            - name: TRUSTED_PROXIES
+              value: 131.155.69.202,10.0.0.0/8
+            - name: SMTP_HOST
+              value: smtp.gewis.nl
+            - name: SMTP_PORT
+              value: '587'
+            - name: SMTP_SECURE
+              value: 'false'
+            - name: SMTP_REQUIRE_TLS
+              value: 'true'
+            - name: SMTP_FROM
+              value: svc-kaneo-prod@gewis.nl
           envFrom:
             - secretRef:
                 name: kaneo-secrets
