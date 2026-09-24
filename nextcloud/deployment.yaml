@@ -36,15 +36,15 @@ spec:
             - name: NEXTCLOUD_DATA_DIR
               value: /var/www/data
             - name: NEXTCLOUD_TRUSTED_DOMAINS
-              value: nextcloud-test.gewis.nl
+              value: nextcloud.test.gewis.nl
             - name: NEXTCLOUD_INIT_HTACCESS
               value: 'true'
             - name: OVERWRITEHOST
-              value: nextcloud-test.gewis.nl
+              value: nextcloud.test.gewis.nl
             - name: OVERWRITEPROTOCOL
               value: https
             - name: OVERWRITECLIURL
-              value: https://nextcloud-test.gewis.nl
+              value: https://nextcloud.test.gewis.nl
             - name: TRUSTED_PROXIES
               value: 10.0.0.0/8
             - name: APACHE_DISABLE_REWRITE_IP
