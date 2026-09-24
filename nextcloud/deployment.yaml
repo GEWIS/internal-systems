@@ -15,8 +15,6 @@ spec:
         io.kompose.service: nextcloud
     spec:
       hostname: nextcloud
-      # The image drops to www-data (33:33) but never chowns NEXTCLOUD_DATA_DIR,
-      # so a fresh PVC would be root-owned and the install would fail.
       securityContext:
         fsGroup: 33
         fsGroupChangePolicy: OnRootMismatch
@@ -24,9 +22,6 @@ spec:
         - name: nextcloud
           image: nextcloud:34.0.4-apache
           imagePullPolicy: IfNotPresent
-          # Anchored: the cron container reads the same env. Several image config files
-          # (redis, reverse proxy, SMTP) are evaluated by PHP at *runtime*, not baked into
-          # config.php at install, so drift between the two containers breaks cron jobs.
           env: &nextcloud-env
             - name: POSTGRES_HOST
               value: pg01.db.gewis.nl:5432
@@ -83,8 +78,6 @@ spec:
             - containerPort: 80
               name: main
               protocol: TCP
-          # First install and major upgrades run occ inside the entrypoint; without a
-          # generous startup probe the liveness probe kills the pod mid-migration.
           startupProbe:
             httpGet:
               path: /status.php
@@ -113,8 +106,6 @@ spec:
               name: data
             - mountPath: /docker-entrypoint-hooks.d/before-starting
               name: hooks
-        # Sidecar rather than a CronJob: the html/data PVCs are ReadWriteOnce, so no
-        # second pod can mount them.
         - name: cron
           image: nextcloud:34.0.4-apache
           imagePullPolicy: IfNotPresent
