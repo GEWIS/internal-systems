@@ -1,2 +1,3 @@
-secrets.prod.yaml
+secrets.*.yaml
+!secrets.template.yaml
 cert.pem
