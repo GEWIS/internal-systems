@@ -24,7 +24,7 @@ done
 
 occ config:system:set default_phone_region --value=NL
 occ config:system:set maintenance_window_start --type=integer --value=1
-occ config:system:set default_quota --value='10 GB'
+occ config:app:set files default_quota --value='1 GB'
 
 # No example files for new users. Only affects a user's first login; users that
 # already logged in keep whatever was copied back then.

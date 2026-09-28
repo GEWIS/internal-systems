@@ -8,8 +8,6 @@ resources:
   - ingress.yaml
   - secrets.yaml
 
-# Generated (hash-suffixed) so a hook change rolls the Deployment; a plain ConfigMap
-# update never restarts the pod, so before-starting hooks would not re-run.
 configMapGenerator:
   - name: nextcloud-hooks
     files:
