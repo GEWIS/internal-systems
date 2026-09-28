@@ -31,6 +31,8 @@ spec:
               value: svc-nextcloud-test
             - name: PGSSLMODE
               value: require
+            - name: PGSSLCERT
+              value: /tmp/postgresql.crt
             - name: NEXTCLOUD_ADMIN_USER
               value: cbclocal
             - name: NEXTCLOUD_DATA_DIR
