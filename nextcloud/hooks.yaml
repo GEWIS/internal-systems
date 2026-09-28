@@ -50,6 +50,8 @@ data:
       --mapping-display-name='name' \
       --mapping-groups='groups' \
       --group-provisioning=1 \
+      --group-whitelist-regex='/^(Board - Active board\(s\)|Organ - CBC)$/' \
+      --group-restrict-login-to-whitelist=1 \
       --unique-uid=0 \
       --check-bearer=0
 
