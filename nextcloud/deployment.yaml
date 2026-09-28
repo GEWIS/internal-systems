@@ -75,16 +75,6 @@ spec:
               value: '256'
             - name: REDIS_HOST
               value: redis
-            - name: SMTP_HOST
-              value: smtp.gewis.nl
-            - name: SMTP_PORT
-              value: '587'
-            - name: SMTP_SECURE
-              value: tls
-            - name: MAIL_FROM_ADDRESS
-              value: nextcloud-test
-            - name: MAIL_DOMAIN
-              value: gewis.nl
             - name: TZ
               value: Europe/Amsterdam
           envFrom: &nextcloud-secrets
