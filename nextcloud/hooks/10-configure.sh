@@ -26,10 +26,22 @@ occ config:system:set default_phone_region --value=NL
 occ config:system:set maintenance_window_start --type=integer --value=1
 occ config:app:set files default_quota --value='1 GB'
 
-# No example files for new users. Only affects a user's first login; users that
-# already logged in keep whatever was copied back then.
+# No example files for new users.
 occ config:system:set skeletondirectory --value=''
 occ config:system:set templatedirectory --value=''
+
+occ app:install richdocuments || occ app:enable richdocuments
+occ config:app:set richdocuments wopi_allowlist --value='10.0.0.0/8'
+
+i=0
+until occ richdocuments:activate-config --wopi-url='http://collabora:9980' --callback-url='http://nextcloud'; do
+  i=$((i + 1))
+  if [ "$i" -ge 12 ]; then
+    echo '==> Collabora unreachable, Nextcloud Office stays unavailable until the next discovery fetch'
+    break
+  fi
+  sleep 5
+done
 
 if [ -z "${OIDC_CLIENT_SECRET:-}" ] || [ "${OIDC_CLIENT_SECRET}" = 'REPLACE_ME' ]; then
   echo '==> OIDC_CLIENT_SECRET unset, skipping user_oidc configuration'

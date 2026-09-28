@@ -12,3 +12,8 @@ spec:
       services:
         - name: nextcloud
           port: 80
+    - match: Host(`nextcloud.test.gewis.nl`) && (PathPrefix(`/browser`) || PathPrefix(`/hosting/discovery`) || PathPrefix(`/hosting/capabilities`) || PathPrefix(`/cool`))
+      kind: Rule
+      services:
+        - name: collabora
+          port: 9980
