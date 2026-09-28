@@ -58,5 +58,7 @@ data:
     # Single backend -> send users straight to Keycloak.
     # Break-glass local login stays reachable at /login?direct=1.
     occ config:app:set --type=string --value=0 user_oidc allow_multiple_user_backends
+    occ config:system:set skeletondirectory --value=''
+    occ config:system:set templatedirectory --value=''
 
     occ db:add-missing-indices
