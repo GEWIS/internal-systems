@@ -19,6 +19,14 @@ data:
       exit 0
     fi
 
+    # The entrypoint only sets trusted domains right after a fresh install; keep them
+    # in sync on every start so env changes (or an interrupted install) are applied.
+    i=1
+    for domain in ${NEXTCLOUD_TRUSTED_DOMAINS:-}; do
+      occ config:system:set trusted_domains "$i" --value="$domain"
+      i=$((i + 1))
+    done
+
     occ config:system:set default_phone_region --value=NL
     occ config:system:set maintenance_window_start --type=integer --value=1
     occ config:system:set default_quota --value='10 GB'

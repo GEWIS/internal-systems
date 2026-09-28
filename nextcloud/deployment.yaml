@@ -18,6 +18,20 @@ spec:
       securityContext:
         fsGroup: 33
         fsGroupChangePolicy: OnRootMismatch
+      # The data PVC root is root-owned; fsGroup only grants group access. Nextcloud's
+      # occ refuses to run unless the data dir is 0770 and chmods it itself, which
+      # fails for www-data when it isn't the owner ("Environment not properly prepared").
+      initContainers:
+        - name: data-permissions
+          image: nextcloud:34.0.4-apache
+          imagePullPolicy: IfNotPresent
+          command:
+            - sh
+            - -euc
+            - chown 33:33 /var/www/data && chmod 2770 /var/www/data
+          volumeMounts:
+            - mountPath: /var/www/data
+              name: data
       containers:
         - name: nextcloud
           image: nextcloud:34.0.4-apache
