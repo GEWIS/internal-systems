@@ -60,7 +60,7 @@ occ app:install user_oidc || occ app:enable user_oidc
 # --clientsecret-env keeps the secret out of the process list.
 # Only the FILES-datas-<share>-RO/-RW permission groups are synced (they drive the team
 # folders); with the login restriction, users without any of them cannot log in.
-occ user_oidc:provider gewis \
+occ user_oidc:provider GEWIS \
   --clientid='nextcloud-test' \
   --clientsecret-env='OIDC_CLIENT_SECRET' \
   --discoveryuri='https://auth.gewis.nl/realms/GEWISWG/.well-known/openid-configuration' \
