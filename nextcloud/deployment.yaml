@@ -124,8 +124,9 @@ spec:
               name: html
             - mountPath: /var/www/data
               name: data
-        # Gives every "Organ - *" group (created by user_oidc on login) a team folder.
-        - name: organ-folders
+        # Gives every FILES-datas-<share>-RO/-RW group pair (created by user_oidc on
+        # login) a team folder.
+        - name: team-folders
           image: nextcloud:34.0.4-apache
           imagePullPolicy: IfNotPresent
           command:
@@ -134,7 +135,7 @@ spec:
             - |
               trap 'exit 0' TERM
               while :; do
-                /scripts/organ-folders.sh || echo '==> organ folder reconcile failed'
+                /scripts/team-folders.sh || echo '==> team folder reconcile failed'
                 sleep 60 &
                 wait $!
               done

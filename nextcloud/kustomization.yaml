@@ -14,4 +14,4 @@ configMapGenerator:
       - hooks/10-configure.sh
   - name: nextcloud-scripts
     files:
-      - scripts/organ-folders.sh
+      - scripts/team-folders.sh

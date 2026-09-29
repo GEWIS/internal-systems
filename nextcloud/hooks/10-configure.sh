@@ -43,7 +43,7 @@ until occ richdocuments:activate-config --wopi-url='http://collabora:9980' --cal
   sleep 5
 done
 
-# Team folders; scripts/organ-folders.sh creates one per organ group.
+# Team folders; scripts/team-folders.sh creates one per FILES-datas-<share> group pair.
 occ app:install groupfolders || occ app:enable groupfolders
 
 if [ -z "${OIDC_CLIENT_SECRET:-}" ] || [ "${OIDC_CLIENT_SECRET}" = 'REPLACE_ME' ]; then
@@ -65,7 +65,7 @@ occ user_oidc:provider gewis \
   --mapping-display-name='name' \
   --mapping-groups='groups' \
   --group-provisioning=1 \
-  --group-whitelist-regex='/^(Board - Active board\(s\)|Organ - .+)$/' \
+  --group-whitelist-regex='/^(Board - Active board\(s\)|Organ - .+|FILES-datas-.+-R[OW])$/' \
   --group-restrict-login-to-whitelist=1 \
   --unique-uid=0 \
   --check-bearer=0
