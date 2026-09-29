@@ -62,7 +62,7 @@ occ user_oidc:provider gewis \
   --mapping-display-name='name' \
   --mapping-groups='groups' \
   --group-provisioning=1 \
-  --group-whitelist-regex='/^(Board - Active board\(s\)|Organ - CBC)$/' \
+  --group-whitelist-regex='/^(Board - Active board\(s\)|Organ - .+)$/' \
   --group-restrict-login-to-whitelist=1 \
   --unique-uid=0 \
   --check-bearer=0
