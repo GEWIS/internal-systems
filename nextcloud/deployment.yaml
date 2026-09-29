@@ -124,6 +124,33 @@ spec:
               name: html
             - mountPath: /var/www/data
               name: data
+        # Gives every "Organ - *" group (created by user_oidc on login) a team folder.
+        - name: organ-folders
+          image: nextcloud:34.0.4-apache
+          imagePullPolicy: IfNotPresent
+          command:
+            - sh
+            - -uc
+            - |
+              trap 'exit 0' TERM
+              while :; do
+                /scripts/organ-folders.sh || echo '==> organ folder reconcile failed'
+                sleep 60 &
+                wait $!
+              done
+          # occ must run as the owner of config/config.php.
+          securityContext:
+            runAsUser: 33
+            runAsGroup: 33
+          env: *nextcloud-env
+          envFrom: *nextcloud-secrets
+          volumeMounts:
+            - mountPath: /var/www/html
+              name: html
+            - mountPath: /var/www/data
+              name: data
+            - mountPath: /scripts
+              name: scripts
       dnsConfig:
         options:
           - name: ndots
@@ -138,6 +165,10 @@ spec:
         - name: hooks
           configMap:
             name: nextcloud-hooks
+            defaultMode: 0755
+        - name: scripts
+          configMap:
+            name: nextcloud-scripts
             defaultMode: 0755
 ---
 apiVersion: apps/v1

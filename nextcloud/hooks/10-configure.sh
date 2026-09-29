@@ -43,6 +43,9 @@ until occ richdocuments:activate-config --wopi-url='http://collabora:9980' --cal
   sleep 5
 done
 
+# Team folders; scripts/organ-folders.sh creates one per organ group.
+occ app:install groupfolders || occ app:enable groupfolders
+
 if [ -z "${OIDC_CLIENT_SECRET:-}" ] || [ "${OIDC_CLIENT_SECRET}" = 'REPLACE_ME' ]; then
   echo '==> OIDC_CLIENT_SECRET unset, skipping user_oidc configuration'
   exit 0
