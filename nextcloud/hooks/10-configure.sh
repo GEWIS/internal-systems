@@ -45,6 +45,9 @@ done
 
 # Team folders; scripts/team-folders.sh creates one per FILES-datas-<share> group pair.
 occ app:install groupfolders || occ app:enable groupfolders
+# Quota for team folders left on "Default" (all new ones); resolved on read, so changing
+# it applies to every such folder. Per-folder overrides in the admin UI still win.
+occ config:system:set groupfolders.quota.default --type=integer --value=2147483648 # 2 GiB
 
 if [ -z "${OIDC_CLIENT_SECRET:-}" ] || [ "${OIDC_CLIENT_SECRET}" = 'REPLACE_ME' ]; then
   echo '==> OIDC_CLIENT_SECRET unset, skipping user_oidc configuration'
@@ -55,6 +58,8 @@ occ app:install user_oidc || occ app:enable user_oidc
 
 # Idempotent upsert; re-running also flushes the provider JWKS cache.
 # --clientsecret-env keeps the secret out of the process list.
+# Only the FILES-datas-<share>-RO/-RW permission groups are synced (they drive the team
+# folders); with the login restriction, users without any of them cannot log in.
 occ user_oidc:provider gewis \
   --clientid='nextcloud-test' \
   --clientsecret-env='OIDC_CLIENT_SECRET' \
@@ -65,7 +70,7 @@ occ user_oidc:provider gewis \
   --mapping-display-name='name' \
   --mapping-groups='groups' \
   --group-provisioning=1 \
-  --group-whitelist-regex='/^(Board - Active board\(s\)|Organ - .+|FILES-datas-.+-R[OW])$/' \
+  --group-whitelist-regex='/^FILES-datas-.+-R[OW]$/' \
   --group-restrict-login-to-whitelist=1 \
   --unique-uid=0 \
   --check-bearer=0
