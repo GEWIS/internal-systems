@@ -12,3 +12,9 @@ spec:
       services:
         - name: mattermost
           port: 8065
+    # Native mobile app login through the mattermost-oidc plugin; see mobile-bridge in deployment.yaml.
+    - match: Host(`mattermost.gewis.nl`) && (Path(`/api/v4/config/client`) || Path(`/oauth/openid/mobile_login`))
+      kind: Rule
+      services:
+        - name: mobile-bridge
+          port: 8066

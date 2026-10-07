@@ -151,3 +151,89 @@ spec:
         - name: data
           persistentVolumeClaim:
             claimName: data
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mobile-bridge
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: mobile-bridge
+  template:
+    metadata:
+      labels:
+        io.kompose.service: mobile-bridge
+    spec:
+      # The native mobile app only offers SSO when the client config advertises core OpenID,
+      # and always starts it at /oauth/openid/mobile_login. This shim from the mattermost-oidc
+      # plugin fakes the former for mobile clients and redirects the latter into the plugin.
+      # Upstream publishes no image, so the pinned source (Go standard library only) is
+      # built at startup.
+      initContainers:
+        - name: build
+          image: golang:1.26.3-alpine
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            runAsUser: 65532
+            runAsGroup: 65532
+          command:
+            - sh
+            - -euc
+            - |
+              # Go ignores a go.mod directly in the temp root, so build in a subdirectory.
+              mkdir /tmp/src && cd /tmp/src
+              for f in go.mod main.go; do wget -q "$SOURCE/$f"; done
+              printf '%s  go.mod\n%s  main.go\n' "$GO_MOD_SHA256" "$MAIN_GO_SHA256" | sha256sum -c -
+              CGO_ENABLED=0 go build -trimpath -ldflags='-s -w' -o /bridge/mobile-bridge .
+          env:
+            # Commit of plugin release v0.6.1; keep in sync with PLUGIN_URL above.
+            - name: SOURCE
+              value: https://raw.githubusercontent.com/server-camp/mattermost-oidc-plugin/049611fdd27e5a1a9bcd5af6b89defa495c6ecd3/mobile-bridge
+            - name: GO_MOD_SHA256
+              value: d750ddf3d74987e5f13bfcc5b72fb5216e1e836d3920f23e866e7d82ede4a9bb
+            - name: MAIN_GO_SHA256
+              value: 7264e5a7f02193fa009f03c13973948df6f70233057b26a1f7d8d4deae0924af
+            - name: GOTOOLCHAIN
+              value: local
+            - name: GOCACHE
+              value: /tmp/go-cache
+            - name: GOPATH
+              value: /tmp/go
+          volumeMounts:
+            - mountPath: /bridge
+              name: bridge
+      containers:
+        - name: mobile-bridge
+          image: gcr.io/distroless/static-debian12:nonroot
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bridge/mobile-bridge
+          env:
+            - name: UPSTREAM
+              value: http://mattermost:8065
+          ports:
+            - containerPort: 8066
+              name: main
+              protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: main
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: main
+            periodSeconds: 30
+          volumeMounts:
+            - mountPath: /bridge
+              name: bridge
+      dnsConfig:
+        options:
+          - name: ndots
+            value: '1'
+      volumes:
+        - name: bridge
+          emptyDir: {}

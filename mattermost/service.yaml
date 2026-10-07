@@ -9,3 +9,15 @@ spec:
     - name: main
       port: 8065
       targetPort: 8065
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mobile-bridge
+spec:
+  selector:
+    io.kompose.service: mobile-bridge
+  ports:
+    - name: main
+      port: 8066
+      targetPort: 8066
