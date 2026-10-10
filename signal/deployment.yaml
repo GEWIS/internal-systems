@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cli-rest-api
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      io.kompose.service: cli-rest-api
+  template:
+    metadata:
+      labels:
+        io.kompose.service: cli-rest-api
+    spec:
+      terminationGracePeriodSeconds: 90
+      containers:
+        - name: cli-rest-api
+          image: bbernhard/signal-cli-rest-api:0.101
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+          env:
+            - name: MODE
+              value: normal
+            - name: AUTO_RECEIVE_SCHEDULE
+              value: "* * * * *"
+          lifecycle:
+            preStop:
+              exec:
+                command:
+                  - sh
+                  - -c
+                  - |
+                    echo "Gracefully stopping signal-cli..."
+                    pkill -TERM -f signal-cli || true
+                    sleep 20
+          volumeMounts:
+            - name: signal-config
+              mountPath: /home/.local/share/signal-cli
+      volumes:
+        - name: signal-config
+          persistentVolumeClaim:
+            claimName: signal-config

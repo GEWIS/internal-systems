@@ -1,0 +1,25 @@
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: signal-ip-allowlist
+  namespace: signal-prod
+spec:
+  ipAllowList:
+    sourceRange:
+      - 131.155.69.69/32
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: signal-prod
+  namespace: signal-prod
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`signal-cli.gewis.nl`)
+      middlewares:
+        - name: signal-ip-allowlist
+      services:
+        - name: cli-rest-api
+          port: 8080
