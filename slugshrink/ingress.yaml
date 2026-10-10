@@ -1,0 +1,59 @@
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: slugshrink-root-redirect
+  namespace: slugshrink-prod
+spec:
+  redirectRegex:
+    permanent: false
+    regex: ^https?://gew\.is/?$
+    replacement: https://gewis.nl/
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: slugshrink-auth
+  namespace: slugshrink-prod
+spec:
+  plugin:
+    traefik-oidc-auth:
+      Provider:
+        ClientId: traefik-auth
+        ClientSecret: urn:k8s:secret:oidc-secret:providerClientSecret
+        Url: https://auth.gewis.nl/realms/GEWISWG
+        UsePkce: true
+        ValidAudience: traefik-auth
+      Scopes:
+        - openid
+        - profile
+        - email
+      Secret: urn:k8s:secret:oidc-secret:pluginSecret
+      Headers:
+        - Name: X-OIDC-GROUPS
+          Value: '{{with .claims.groups}}{{range $i, $g := .}}{{if $i}}|{{end}}{{$g}}{{end}}{{end}}'
+        - Name: X-OIDC-USER
+          Value: '{{.claims.email}}'
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: slugshrink-dashboard
+  namespace: slugshrink-prod
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - kind: Rule
+      match: Host(`gew.is`)
+      middlewares:
+        - name: slugshrink-root-redirect
+      services:
+        - name: deploy-slugshrink
+          port: 8081
+    - kind: Rule
+      match: Host(`dashboard.gew.is`)
+      middlewares:
+        - name: slugshrink-auth
+      services:
+        - name: deploy-slugshrink
+          port: 8080

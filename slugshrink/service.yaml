@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: deploy-slugshrink
+spec:
+  selector:
+    io.kompose.service: deploy-slugshrink
+  ports:
+    - name: dashboard
+      port: 8080
+      targetPort: 8080
+    - name: public
+      port: 8081
+      targetPort: 8081

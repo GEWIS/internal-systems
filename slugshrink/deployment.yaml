@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deploy-slugshrink
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      workload.user.cattle.io/workloadselector: apps.deployment-slugshrink-prod-deploy-slugshrink
+  template:
+    metadata:
+      labels:
+        io.kompose.service: deploy-slugshrink
+        workload.user.cattle.io/workloadselector: apps.deployment-slugshrink-prod-deploy-slugshrink
+    spec:
+      containers:
+        - name: slugshrink
+          image: ghcr.io/luukblankenstijn/slugshrink:latest
+          imagePullPolicy: Always
+          env:
+            - name: DB_TYPE
+              value: mariadb
+            - name: DB_HOST
+              value: mariadb01.db.gewis.nl
+            - name: DB_PORT
+              value: '3306'
+            - name: DB_USER
+              value: svc-slugshrink-prod
+            - name: DB_NAME
+              value: cbc_slugshrink_prod
+            - name: DB_SSLMODE
+              value: 'true'
+          envFrom:
+            - secretRef:
+                name: slugshrink-secrets
+          ports:
+            - name: dashboard
+              containerPort: 8080
+              protocol: TCP
+            - name: public
+              containerPort: 8081
+              protocol: TCP
+          securityContext:
+            allowPrivilegeEscalation: false
+            privileged: false
+            readOnlyRootFilesystem: false
+            runAsNonRoot: false
